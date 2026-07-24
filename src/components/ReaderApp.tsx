@@ -1,19 +1,11 @@
 "use client";
 
 import {
-  ArrowLeft, BookOpen, ChevronLeft, ChevronRight, Clock3, Grid2X2,
-  Highlighter, Home, Library, List, Maximize2, Menu, Minus, Moon,
-  MoreHorizontal, Plus, Search, Settings2, Sun, Upload, X,
+  BookOpen, ChevronRight, Clock3, Grid2X2, Highlighter, Home, Library,
+  List, Menu, MoreHorizontal, Plus, Search, Settings2, Upload, X,
 } from "lucide-react";
-import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
-import { Document, Page, pdfjs } from "react-pdf";
-import "react-pdf/dist/Page/AnnotationLayer.css";
-import "react-pdf/dist/Page/TextLayer.css";
-
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.min.mjs",
-  import.meta.url,
-).toString();
+import { ChangeEvent, DragEvent, useRef, useState } from "react";
+import ReflowReader from "./ReflowReader";
 
 type Book = {
   id: string;
@@ -77,7 +69,7 @@ export default function ReaderApp() {
   );
 
   if (activeBook?.url) {
-    return <PdfReader book={activeBook} onClose={() => setActiveBook(null)} />;
+    return <ReflowReader book={activeBook} onClose={() => setActiveBook(null)} />;
   }
 
   return (
@@ -177,72 +169,6 @@ export default function ReaderApp() {
 
         {dragging && <div className="drop-overlay"><div><Upload size={30} /><strong>Drop your PDFs here</strong><span>They’ll be ready to read in a moment.</span></div></div>}
       </section>
-    </main>
-  );
-}
-
-function PdfReader({ book, onClose }: { book: Book; onClose: () => void }) {
-  const [pages, setPages] = useState(0);
-  const [page, setPage] = useState(1);
-  const [scale, setScale] = useState(1);
-  const [tone, setTone] = useState<"light" | "sepia" | "dark">("light");
-  const [panelOpen, setPanelOpen] = useState(false);
-  const previousPage = () => setPage((current) => Math.max(1, current - 1));
-  const nextPage = () => setPage((current) => Math.min(pages || current, current + 1));
-
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "ArrowLeft") previousPage();
-      if (event.key === "ArrowRight") nextPage();
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  });
-
-  return (
-    <main className={`reader tone-${tone}`}>
-      <header className="reader-bar">
-        <div className="reader-title">
-          <button className="reader-icon" onClick={onClose} aria-label="Back to library"><ArrowLeft size={20} /></button>
-          <BrandMark />
-          <span><strong>{book.title}</strong><small>{pages ? `${pages} pages` : "Opening document…"}</small></span>
-        </div>
-        <div className="reader-actions">
-          <button className="reader-icon" onClick={() => setPanelOpen(!panelOpen)} aria-label="Reader appearance"><Sun size={19} /></button>
-          <button className="reader-icon" onClick={() => document.documentElement.requestFullscreen?.()} aria-label="Enter fullscreen"><Maximize2 size={18} /></button>
-        </div>
-      </header>
-
-      <aside className={`appearance-panel ${panelOpen ? "open" : ""}`}>
-        <div className="panel-heading"><strong>Reading appearance</strong><button onClick={() => setPanelOpen(false)}><X size={18} /></button></div>
-        <span>Page tone</span>
-        <div className="tone-options">
-          <button className={tone === "light" ? "active" : ""} onClick={() => setTone("light")}><Sun size={17} /> Light</button>
-          <button className={tone === "sepia" ? "active" : ""} onClick={() => setTone("sepia")}><BookOpen size={17} /> Warm</button>
-          <button className={tone === "dark" ? "active" : ""} onClick={() => setTone("dark")}><Moon size={17} /> Dark</button>
-        </div>
-      </aside>
-
-      <section className="document-stage">
-        <Document file={book.url} onLoadSuccess={({ numPages }) => setPages(numPages)} loading={<div className="reader-loading"><BrandMark /><span>Preparing your book…</span></div>} error={<div className="reader-loading error"><strong>We couldn’t open this PDF.</strong><span>Try another document.</span></div>}>
-          <div className="page-wrap"><Page pageNumber={page} scale={scale} renderAnnotationLayer renderTextLayer loading={<div className="page-placeholder" />} /></div>
-        </Document>
-      </section>
-
-      <footer className="reader-controls">
-        <div className="zoom-controls">
-          <button onClick={() => setScale((value) => Math.max(0.6, value - 0.15))} aria-label="Zoom out"><Minus size={17} /></button>
-          <span>{Math.round(scale * 100)}%</span>
-          <button onClick={() => setScale((value) => Math.min(2.5, value + 0.15))} aria-label="Zoom in"><Plus size={17} /></button>
-        </div>
-        <div className="page-controls">
-          <button onClick={previousPage} disabled={page <= 1} aria-label="Previous page"><ChevronLeft size={19} /></button>
-          <span>Page <strong>{page}</strong> of {pages || "—"}</span>
-          <button onClick={nextPage} disabled={!pages || page >= pages} aria-label="Next page"><ChevronRight size={19} /></button>
-        </div>
-        <div className="reader-progress"><span style={{ width: `${pages ? (page / pages) * 100 : 0}%` }} /></div>
-      </footer>
     </main>
   );
 }
